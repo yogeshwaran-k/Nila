@@ -122,7 +122,7 @@
       const typingMsg = addMessage('Nila is typing...', 'bot', time, true);
       try {
         isTyping = true;
-        const res = await fetch('https://nilaaw.app.n8n.cloud/webhook/ed581f80-f498-4ed4-a979-e22dd59d32d0', {
+        const res = await fetch('https://nila-web.onrender.com', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query })
