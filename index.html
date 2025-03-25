@@ -72,11 +72,13 @@
     const loaderCircle = document.getElementById('loaderCircle');
     const footer = document.getElementById('footer');
     const startupSound = document.getElementById('startupSound');
+    
 
     let isTyping = false;
     let typingInterval = null;
     const chatHistoryElem = document.getElementById('chatHistory');
     const queryInput = document.getElementById('query');
+    
 
     // Load chat history
     window.onload = () => {
@@ -110,32 +112,43 @@
       }, 30);
     });
 
-    async function askNila() {
-      const query = queryInput.value.trim();
-      if (!query || isTyping) return;
+   async function askNila() {
+    const query = queryInput.value.trim();
+    if (!query || isTyping) return;
 
-      const time = getCurrentTime();
-      addMessage(query, 'user', time);
-      saveToHistory(query, 'user', time);
-      queryInput.value = '';
+    // Generate or get stored user ID
+    let userId = localStorage.getItem("user_id");
+    if (!userId) {
+        userId = crypto.randomUUID();  // Generate new UUID if not found
+        localStorage.setItem("user_id", userId);
+    }
 
-      const typingMsg = addMessage('Nila is typing...', 'bot', time, true);
-      try {
+    const time = getCurrentTime();
+    addMessage(query, 'user', time);
+    saveToHistory(query, 'user', time);
+    queryInput.value = '';
+
+    const typingMsg = addMessage('Nila is typing...', 'bot', time, true);
+    try {
         isTyping = true;
         const res = await fetch('https://nila-web.onrender.com/webhook', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                user_id: userId,  // Send user ID
+                query: query 
+            })
         });
 
         const data = await res.json();
         chatHistoryElem.removeChild(typingMsg);
         typeEffect(data.reply, 'bot', getCurrentTime());
-      } catch {
+    } catch {
         chatHistoryElem.removeChild(typingMsg);
         addMessage('Oops! Something went wrong. 😢', 'bot', getCurrentTime());
-      }
     }
+}
+
 
     function addMessage(text, sender, time, isTypingMsg = false) {
       const wrapper = document.createElement('div');
@@ -219,6 +232,9 @@
       localStorage.removeItem('chatHistory');
       chatHistoryElem.innerHTML = '';
     }
+
+
+
 
     function stopTyping() {
       if (typingInterval) {
