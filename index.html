@@ -116,28 +116,22 @@
     const query = queryInput.value.trim();
     if (!query || isTyping) return;
 
-    // Generate or get stored user ID
-    let userId = localStorage.getItem("user_id");
-    if (!userId) {
-        userId = crypto.randomUUID();  // Generate new UUID if not found
-        localStorage.setItem("user_id", userId);
-    }
-
     const time = getCurrentTime();
     addMessage(query, 'user', time);
     saveToHistory(query, 'user', time);
     queryInput.value = '';
 
+    const user_id = localStorage.getItem('user_id') || generateUserId();
+    localStorage.setItem('user_id', user_id);  // Ensure the same ID is reused
+
     const typingMsg = addMessage('Nila is typing...', 'bot', time, true);
+    
     try {
         isTyping = true;
         const res = await fetch('https://nila-web.onrender.com/webhook', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                user_id: userId,  // Send user ID
-                query: query 
-            })
+            body: JSON.stringify({ user_id, query })  // Sending user_id with query
         });
 
         const data = await res.json();
@@ -147,6 +141,11 @@
         chatHistoryElem.removeChild(typingMsg);
         addMessage('Oops! Something went wrong. 😢', 'bot', getCurrentTime());
     }
+}
+
+// Generate a random UUID for first-time users
+function generateUserId() {
+    return 'user-' + crypto.randomUUID();  // Secure, built-in UUID generator
 }
 
 
