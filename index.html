@@ -1,255 +1,122 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Nila🌜 - Ask Me Anything</title>
-  <link rel="icon" type="image/jpg" href="nila.jpg" />
-    <style>
-    body {
-      overflow-y: hidden;
-    }
-    </style>
-  <!-- TailwindCSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nila 🌜 - Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 flex flex-col items-center min-h-screen p-4 transition-colors">
+<body class="bg-gray-900 text-white flex flex-col items-center h-screen">
 
-  <!-- Loader Screen -->
-  <div id="loaderScreen" class="flex flex-col items-center justify-center h-screen">
-    <div class="relative w-32 h-32 mb-4">
-      <svg class="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" stroke="#3B82F6" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" id="loaderCircle"/>
-      </svg>
-      <img src="nila.jpg" alt="Nila Avatar" class="w-24 h-24 rounded-full border-4 border-blue-500 absolute top-4 left-4"/>
+    <!-- Chat Container -->
+    <div class="w-full max-w-2xl flex flex-col h-full border border-gray-700 bg-gray-800 rounded-lg shadow-lg">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-700">
+            <div class="flex items-center">
+                <img src="nila.jpg" alt="Nila Avatar" class="w-10 h-10 rounded-full border border-blue-500 mr-3">
+                <h1 class="text-lg font-semibold">Nila 🌜</h1>
+            </div>
+            <button onclick="clearChat()" class="px-3 py-1 bg-red-500 hover:bg-red-600 rounded-lg text-sm">Clear Chat</button>
+        </div>
+
+        <!-- Chat History -->
+        <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-3">
+            <!-- Messages will appear here -->
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden text-center text-gray-400 py-2">Thinking... ⏳</div>
+
+        <!-- Input Field -->
+        <div class="p-4 border-t border-gray-700 flex">
+            <input id="query" type="text" class="flex-1 p-2 bg-gray-700 text-white rounded-lg focus:outline-none" placeholder="Ask me...">
+            <button onclick="askNila()" class="ml-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg">Send</button>
+            <button onclick="stopResponse()" class="ml-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg">Stop</button>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-blue-400 text-sm py-2 border-t border-gray-700">
+            Made with❤️ by <a class="text-red-400" href="https://yogeshwaran-k.orgfree.com" target="_blank">Yogeshwaran Kumaran</a>
+        </div>
+
     </div>
-    <h1 class="text-2xl font-bold mb-4 text-white">Welcome to Nila 🌙</h1>
-    <button id="startButton" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded mb-4">Start</button>
-    <p id="loaderText" class="text-gray-300 hidden">Loading... <span id="loaderPercent">0%</span></p>
-  </div>
 
-  <!-- Chat Container -->
-  <div id="chatContainer" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md transition-colors flex-grow">
-    <div class="flex items-center space-x-4 mb-4">
-      <img src="nila.jpg" alt="Nila Avatar" class="w-16 h-16 rounded-full border-2 border-blue-500" />
-      <h1 class="text-2xl font-bold text-gray-700 dark:text-gray-100">Nila🌜</h1>
-    </div>
+    <script>
+        let controller = new AbortController();
+        const chatHistoryElem = document.getElementById('chatHistory');
+        const queryInput = document.getElementById('query');
+        const loadingElem = document.getElementById('loading');
 
-    <div id="chatHistory" class="mb-4 space-y-2 max-h-80 overflow-y-auto pr-2">
-      <!-- Chat messages -->
-    </div>
-
-    <div class="flex items-center space-x-2">
-      <input type="text" id="query" placeholder="Ask me..." class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-white" />
-      <button onclick="askNila()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">Send</button>
-    </div>
-
-    <button onclick="stopTyping()" class="mt-2 w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-1 rounded">⏹️ Stop</button>
-
-    <div class="flex justify-between mt-4">
-      <button onclick="clearChat()" class="text-sm text-red-500 hover:underline">🗑️ Clear Chat</button>
-      <button onclick="toggleDarkMode()" class="text-sm text-yellow-500 hover:underline">🌙 Toggle Light/Dark Mode</button>
-    </div>
-  </div>
-
-  <!-- Footer -->
-  <footer class="mt-6 text-center text-sm text-gray-600 dark:text-gray-400 hidden" id="footer">
-    Created with ❤️ by <a href="https://yogeshwaran-k.orgfree.com" target="_blank" class="text-blue-500 hover:underline">Yogeshwaran Kumaran (a.k.a Yoyo)</a>
-  </footer>
-
-  <!-- Audio -->
-  <audio id="startupSound" src="startup.mp3"></audio>
-
-  <script>
-    const loaderScreen = document.getElementById('loaderScreen');
-    const chatContainer = document.getElementById('chatContainer');
-    const startButton = document.getElementById('startButton');
-    const loaderText = document.getElementById('loaderText');
-    const loaderPercent = document.getElementById('loaderPercent');
-    const loaderCircle = document.getElementById('loaderCircle');
-    const footer = document.getElementById('footer');
-    const startupSound = document.getElementById('startupSound');
-    
-
-    let isTyping = false;
-    let typingInterval = null;
-    const chatHistoryElem = document.getElementById('chatHistory');
-    const queryInput = document.getElementById('query');
-    
-
-    // Load chat history
-    window.onload = () => {
-      const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
-      history.forEach(msg => addMessage(msg.text, msg.sender, msg.time));
-    };
-
-    // Send on Enter
-    queryInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        askNila();
-      }
-    });
-
-    startButton.addEventListener('click', () => {
-      startButton.classList.add('hidden');
-      loaderText.classList.remove('hidden');
-      startupSound.play();
-      let percent = 0;
-      const interval = setInterval(() => {
-        percent++;
-        loaderPercent.innerText = percent + '%';
-        loaderCircle.style.strokeDashoffset = 283 - (283 * percent / 100);
-        if (percent >= 100) {
-          clearInterval(interval);
-          loaderScreen.classList.add('hidden');
-          chatContainer.classList.remove('hidden');
-          footer.classList.remove('hidden');
-        }
-      }, 30);
-    });
-
-   async function askNila() {
-    const query = queryInput.value.trim();
-    if (!query || isTyping) return;
-
-    const time = getCurrentTime();
-    addMessage(query, 'user', time);
-    saveToHistory(query, 'user', time);
-    queryInput.value = '';
-
-    const user_id = localStorage.getItem('user_id') || generateUserId();
-    localStorage.setItem('user_id', user_id);  // Ensure the same ID is reused
-
-    const typingMsg = addMessage('Nila is typing...', 'bot', time, true);
-    
-    try {
-        isTyping = true;
-        const res = await fetch('https://nila-web.onrender.com/webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id, query })  // Sending user_id with query
+        queryInput.addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                askNila();
+            }
         });
 
-        const data = await res.json();
-        chatHistoryElem.removeChild(typingMsg);
-        typeEffect(data.reply, 'bot', getCurrentTime());
-    } catch {
-        chatHistoryElem.removeChild(typingMsg);
-        addMessage('Oops! Something went wrong. 😢', 'bot', getCurrentTime());
-    }
-}
+        function askNila() {
+            const query = queryInput.value.trim();
+            if (!query) return;
 
-// Generate a random UUID for first-time users
-function generateUserId() {
-    return 'user-' + crypto.randomUUID();  // Secure, built-in UUID generator
-}
+            addMessage(query, 'user');
+            queryInput.value = '';
+            
+            controller = new AbortController();
+            loadingElem.classList.remove('hidden'); // Show loading
 
-
-    function addMessage(text, sender, time, isTypingMsg = false) {
-      const wrapper = document.createElement('div');
-      wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} items-start space-x-2`;
-
-      if (sender === 'bot') {
-        const avatar = document.createElement('img');
-        avatar.src = "nila.jpg";
-        avatar.className = "w-8 h-8 rounded-full border border-blue-400";
-        wrapper.appendChild(avatar);
-      }
-
-      const msgBubble = document.createElement('div');
-      msgBubble.className = `p-2 rounded ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'} max-w-xs`;
-      msgBubble.innerText = text;
-      msgBubble.style.whiteSpace = "pre-wrap";
-
-      const timeStamp = document.createElement('div');
-      timeStamp.className = "text-xs text-gray-500 dark:text-gray-400 mt-1";
-      timeStamp.innerText = time;
-
-      const msgContainer = document.createElement('div');
-      msgContainer.className = "flex flex-col";
-      msgContainer.appendChild(msgBubble);
-      msgContainer.appendChild(timeStamp);
-
-      wrapper.appendChild(msgContainer);
-      chatHistoryElem.appendChild(wrapper);
-      chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-
-      return isTypingMsg ? wrapper : null;
-    }
-
-    function typeEffect(text, sender, time) {
-      let index = 0;
-      const wrapper = document.createElement('div');
-      wrapper.className = `flex justify-start items-start space-x-2`;
-
-      const avatar = document.createElement('img');
-      avatar.src = "nila.jpg";
-      avatar.className = "w-8 h-8 rounded-full border border-blue-400";
-      wrapper.appendChild(avatar);
-
-      const msgBubble = document.createElement('div');
-      msgBubble.className = `p-2 rounded bg-gray-200 dark:bg-gray-700 dark:text-gray-100 max-w-xs`;
-      msgBubble.style.whiteSpace = "pre-wrap";
-
-      const msgContainer = document.createElement('div');
-      msgContainer.className = "flex flex-col";
-      msgContainer.appendChild(msgBubble);
-
-      const timeStamp = document.createElement('div');
-      timeStamp.className = "text-xs text-gray-500 dark:text-gray-400 mt-1";
-      timeStamp.innerText = time;
-      msgContainer.appendChild(timeStamp);
-
-      wrapper.appendChild(msgContainer);
-      chatHistoryElem.appendChild(wrapper);
-      chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-
-      isTyping = true;
-      typingInterval = setInterval(() => {
-        msgBubble.innerText += text[index];
-        index++;
-        chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-        if (index >= text.length) {
-          clearInterval(typingInterval);
-          isTyping = false;
-          saveToHistory(text, sender, time);
+            fetch('https://nila-web.onrender.com/webhook', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query }),
+                signal: controller.signal
+            })
+            .then(res => res.json())
+            .then(data => {
+                loadingElem.classList.add('hidden'); // Hide loading
+                addMessage(data.reply, 'bot', true);
+            })
+            .catch(() => {
+                loadingElem.classList.add('hidden');
+                addMessage('Oops! Something went wrong. 😢', 'bot', true);
+            });
         }
-      }, 30);
-    }
 
-    function saveToHistory(text, sender, time) {
-      const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
-      history.push({ text, sender, time });
-      localStorage.setItem('chatHistory', JSON.stringify(history));
-    }
+        function stopResponse() {
+            controller.abort();
+            loadingElem.classList.add('hidden');
+        }
 
-    function clearChat() {
-      localStorage.removeItem('chatHistory');
-      chatHistoryElem.innerHTML = '';
-    }
+        function addMessage(text, sender, isBot = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white self-end' : 'bg-gray-700 text-white self-start'}`;
+            msgDiv.innerText = text;
 
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
+            
+            wrapper.appendChild(msgDiv);
 
+            if (isBot) {
+                const copyButton = document.createElement('button');
+                copyButton.innerText = '📋';
+                copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
+                copyButton.onclick = () => copyText(text);
+                wrapper.appendChild(copyButton);
+            }
 
+            chatHistoryElem.appendChild(wrapper);
+            chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+        }
 
-    function stopTyping() {
-      if (typingInterval) {
-        clearInterval(typingInterval);
-        isTyping = false;
-      }
-    }
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+        }
 
-    function toggleDarkMode() {
-      document.documentElement.classList.toggle('dark');
-    }
+        function clearChat() {
+            chatHistoryElem.innerHTML = '';
+        }
+    </script>
 
-    function getCurrentTime() {
-      const now = new Date();
-      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-  </script>
 </body>
 </html>
