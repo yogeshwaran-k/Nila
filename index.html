@@ -7,6 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nila 🌜 - Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+
     <style>
         .copy-btn {
             cursor: pointer;
@@ -133,57 +137,49 @@
             loadingElem.classList.add('hidden');
         }
 
-        function addMessage(text, sender, isBot = false, isCode = false) {
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
+        function addMessage(text, sender, isBot = false) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
 
-            if (isCode) {
-                const codeContainer = document.createElement('div');
-                codeContainer.className = 'relative p-4 rounded-lg max-w-full bg-gray-900 text-green-400 font-mono self-start overflow-x-auto';
-                const pre = document.createElement('pre');
-                pre.className = 'whitespace-pre';
-                const codeElem = document.createElement('code');
-                codeElem.textContent = text;
-                pre.appendChild(codeElem);
-                codeContainer.appendChild(pre);
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `p-3 rounded-lg max-w-2xl whitespace-pre-wrap break-words ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
+    wrapper.appendChild(msgDiv);
 
-                const codeCopyButton = document.createElement('button');
-                codeCopyButton.innerText = 'Copy';
-                codeCopyButton.className = 'code-copy-btn';
-                codeCopyButton.onclick = () => {
-                    navigator.clipboard.writeText(text);
-                    codeCopyButton.innerText = 'Copied!';
-                    setTimeout(() => codeCopyButton.innerText = 'Copy', 1500);
-                };
-                codeContainer.appendChild(codeCopyButton);
+    // Detect code block
+    if (text.trim().startsWith("```") && text.trim().endsWith("```")) {
+        const code = text.replace(/```(.*?)\n?/, '').replace(/```$/, '');
+        const pre = document.createElement('pre');
+        const codeElem = document.createElement('code');
+        codeElem.className = 'language-python'; // Optional: auto-detect later if you want
+        codeElem.textContent = code.trim();
+        pre.appendChild(codeElem);
+        msgDiv.appendChild(pre);
 
-                wrapper.appendChild(codeContainer);
+        // Highlight
+        hljs.highlightElement(codeElem);
 
-            } else {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
-                wrapper.appendChild(msgDiv);
+        // Copy Button
+        const copyBtn = document.createElement('button');
+        copyBtn.innerText = 'Copy';
+        copyBtn.className = 'ml-2 text-xs bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded';
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(codeElem.textContent);
+            copyBtn.innerText = 'Copied';
+            setTimeout(() => copyBtn.innerText = 'Copy', 1500);
+        };
+        msgDiv.appendChild(copyBtn);
 
-                if (sender === 'bot' && isBot) {
-                    typeMessage(text, msgDiv, () => {
-                        const copyBtn = document.createElement('span');
-                        copyBtn.className = 'copy-btn ml-2';
-                        copyBtn.innerText = 'Copy';
-                        copyBtn.onclick = () => {
-                            navigator.clipboard.writeText(text);
-                            copyBtn.innerText = 'Copied!';
-                            setTimeout(() => copyBtn.innerText = 'Copy', 1500);
-                        };
-                        msgDiv.appendChild(copyBtn);
-                    });
-                } else {
-                    msgDiv.textContent = text;
-                }
-            }
+    } else if (sender === 'bot' && isBot) {
+        // Typewriter Effect
+        typeMessage(text, msgDiv, () => {});
+    } else {
+        msgDiv.textContent = text;
+    }
 
-            chatHistoryElem.appendChild(wrapper);
-            chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-        }
+    chatHistoryElem.appendChild(wrapper);
+    chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+}
+
 
         function typeMessage(text, element, callback) {
             let i = 0;
