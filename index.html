@@ -55,42 +55,32 @@
             }
         });
 
-        async function askNila() {
-    const query = queryInput.value.trim();
-    if (!query || isTyping) return;
+        function askNila() {
+            const query = queryInput.value.trim();
+            if (!query) return;
 
-    const time = getCurrentTime();
-    addMessage(query, 'user', time);
-    saveToHistory(query, 'user', time);
-    queryInput.value = '';
+            addMessage(query, 'user');
+            queryInput.value = '';
+            
+            controller = new AbortController();
+            loadingElem.classList.remove('hidden'); // Show loading
 
-    const user_id = localStorage.getItem('user_id') || generateUserId();
-    localStorage.setItem('user_id', user_id);  // Ensure the same ID is reused
-
-    const typingMsg = addMessage('Nila is typing...', 'bot', time, true);
-    
-    try {
-        isTyping = true;
-        const res = await fetch('https://nila-web.onrender.com/webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id, query })  // Sending user_id with query
-        });
-
-        const data = await res.json();
-        chatHistoryElem.removeChild(typingMsg);
-        typeEffect(data.reply, 'bot', getCurrentTime());
-    } catch {
-        chatHistoryElem.removeChild(typingMsg);
-        addMessage('Oops! Something went wrong. 😢', 'bot', getCurrentTime());
-    }
-}
-
-// Generate a random UUID for first-time users
-function generateUserId() {
-    return 'user-' + crypto.randomUUID();  // Secure, built-in UUID generator
-}
-
+            fetch('https://nila-web.onrender.com/webhook', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query }),
+                signal: controller.signal
+            })
+            .then(res => res.json())
+            .then(data => {
+                loadingElem.classList.add('hidden'); // Hide loading
+                addMessage(data.reply, 'bot', true);
+            })
+            .catch(() => {
+                loadingElem.classList.add('hidden');
+                addMessage('Oops! Something went wrong. 😢', 'bot', true);
+            });
+        }
 
         function stopResponse() {
             controller.abort();
