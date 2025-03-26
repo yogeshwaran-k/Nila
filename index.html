@@ -6,8 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nila 🌜 - Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+
+    <!-- Highlight.js CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+
+    <style>
+        pre code {
+            font-size: 0.9rem;
+            border-radius: 0.5rem;
+        }
+
+        pre {
+            background: #0f172a;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        pre button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.75rem;
+            background: #3b82f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            color: white;
+            display: none;
+        }
+
+        pre:hover button {
+            display: block;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-900 text-white flex flex-col items-center min-h-screen">
@@ -43,13 +77,10 @@
         <div class="text-center text-blue-400 text-sm py-2 border-t border-gray-700">
             Made with ❤️ by <a class="text-red-400" href="https://yogeshwaran-k.orgfree.com" target="_blank">Yogeshwaran Kumaran</a>
         </div>
-
     </div>
 
     <script>
         let controller = new AbortController();
-        let isTyping = false;
-
         const chatHistoryElem = document.getElementById('chatHistory');
         const queryInput = document.getElementById('query');
         const loadingElem = document.getElementById('loading');
@@ -63,10 +94,11 @@
 
         function askNila() {
             const query = queryInput.value.trim();
-            if (!query || isTyping) return;
+            if (!query) return;
 
             addMessage(query, 'user');
             queryInput.value = '';
+
             controller = new AbortController();
             loadingElem.classList.remove('hidden');
 
@@ -79,103 +111,79 @@
                 body: JSON.stringify({ user_id, query }),
                 signal: controller.signal
             })
-                .then(res => res.json())
-                .then(data => {
-                    loadingElem.classList.add('hidden');
-                    if (data.reply.trim().startsWith("```")) {
-                        const codeText = data.reply.trim().replace(/^```|```$/g, '');
-                        addMessage(codeText, 'bot', true, true);
-                    } else {
-                        addMessage(data.reply, 'bot', true);
-                    }
-                })
-                .catch(error => {
-                    loadingElem.classList.add('hidden');
-                    if (error.name === 'AbortError') return;
-                    addMessage('Oops! Something went wrong. 😢', 'bot', true);
-                });
-        }
-
-        function stopResponse() {
-            if (controller) controller.abort();
-            isTyping = false; // 💥 immediately stops typewriter
-            loadingElem.classList.add('hidden');
+            .then(res => res.json())
+            .then(data => {
+                loadingElem.classList.add('hidden');
+                addMessage(data.reply, 'bot', true);
+            })
+            .catch(error => {
+                loadingElem.classList.add('hidden');
+                if (error.name === 'AbortError') return;
+                addMessage('Oops! Something went wrong. 😢', 'bot', true);
+            });
         }
 
         function generateUserId() {
             return 'user-' + crypto.randomUUID();
         }
 
-        function addMessage(text, sender, isBot = false, isCode = false) {
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
-
-            if (isCode) {
-                const codeContainer = document.createElement('div');
-                codeContainer.className = 'relative p-4 rounded-lg max-w-full bg-gray-900 text-green-400 font-mono self-start overflow-x-auto';
-                const pre = document.createElement('pre');
-                const codeElem = document.createElement('code');
-                codeElem.className = "language-javascript";
-                codeElem.textContent = text;
-                pre.appendChild(codeElem);
-                codeContainer.appendChild(pre);
-
-                const codeCopyButton = document.createElement('button');
-                codeCopyButton.innerText = 'Copy Code';
-                codeCopyButton.className = 'absolute top-1 right-1 bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1 rounded';
-                codeCopyButton.onclick = () => navigator.clipboard.writeText(text);
-                codeContainer.appendChild(codeCopyButton);
-
-                wrapper.appendChild(codeContainer);
-                chatHistoryElem.appendChild(wrapper);
-                hljs.highlightElement(codeElem);
-            } else {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
-                wrapper.appendChild(msgDiv);
-
-                if (sender === 'bot' && isBot) {
-                    isTyping = true;
-                    typeMessage(text, msgDiv, () => {
-                        isTyping = false;
-                        const copyButton = document.createElement('button');
-                        copyButton.innerText = 'Copy';
-                        copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
-                        copyButton.onclick = () => navigator.clipboard.writeText(text);
-                        wrapper.appendChild(copyButton);
-                    });
-                } else {
-                    msgDiv.textContent = text;
-                }
-                chatHistoryElem.appendChild(wrapper);
+        function stopResponse() {
+            if (controller) {
+                controller.abort();
+                loadingElem.classList.add('hidden');
             }
-
-            chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-        }
-
-        function typeMessage(text, element, callback) {
-            let i = 0;
-            element.textContent = '';
-            function type() {
-                if (!isTyping) return;
-                if (i < text.length) {
-                    element.textContent += text.charAt(i);
-                    i++;
-                    setTimeout(type, 20);
-                } else {
-                    isTyping = false;
-                    if (callback) callback();
-                }
-                chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-            }
-            type();
         }
 
         function clearChat() {
             chatHistoryElem.innerHTML = '';
         }
-    </script>
 
+        // ✅ Modernized addMessage (ChatGPT Style)
+        function addMessage(text, sender, isBot = false) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `p-3 rounded-lg space-y-2 max-w-full whitespace-pre-wrap break-words ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
+            wrapper.appendChild(msgDiv);
+
+            if (sender === 'bot' && isBot) {
+                const parts = text.split(/(```[\s\S]*?```)/g);
+                parts.forEach(part => {
+                    if (part.startsWith('```')) {
+                        const codeContent = part.replace(/```/g, '');
+                        const langMatch = codeContent.match(/^(\w+)\n/);
+                        const lang = langMatch ? langMatch[1] : '';
+                        const codeText = lang ? codeContent.slice(lang.length + 1) : codeContent;
+
+                        const pre = document.createElement('pre');
+                        const code = document.createElement('code');
+                        code.className = lang ? `language-${lang}` : '';
+                        code.textContent = codeText.trim();
+                        pre.appendChild(code);
+
+                        // Copy button
+                        const copyBtn = document.createElement('button');
+                        copyBtn.innerText = 'Copy';
+                        copyBtn.onclick = () => navigator.clipboard.writeText(codeText.trim());
+                        pre.appendChild(copyBtn);
+
+                        msgDiv.appendChild(pre);
+                        hljs.highlightElement(code);
+                    } else if (part.trim() !== '') {
+                        const p = document.createElement('p');
+                        p.textContent = part.trim();
+                        msgDiv.appendChild(p);
+                    }
+                });
+            } else {
+                msgDiv.textContent = text;
+            }
+
+            chatHistoryElem.appendChild(wrapper);
+            chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+        }
+    </script>
 </body>
 
 </html>
