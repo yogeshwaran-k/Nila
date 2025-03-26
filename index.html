@@ -35,141 +35,144 @@
     </div>
   </div>
 
-  <script>
-    let controller = new AbortController();
-    const chatHistoryElem = document.getElementById('chatHistory');
-    const queryInput = document.getElementById('query');
-    const loadingElem = document.getElementById('loading');
+<script>
+  let controller = new AbortController();
+  const chatHistoryElem = document.getElementById('chatHistory');
+  const queryInput = document.getElementById('query');
+  const loadingElem = document.getElementById('loading');
 
-    queryInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        askNila();
-      }
-    });
+  // Autofocus input on load
+  window.onload = () => queryInput.focus();
 
-    function askNila() {
-      const query = queryInput.value.trim();
-      if (!query) return;
-
-      addMessage(query, 'user');
-      queryInput.value = '';
-      
-      // Create a new controller for each fetch
-      controller = new AbortController();
-      loadingElem.classList.remove('hidden');
-
-      const user_id = localStorage.getItem('user_id') || generateUserId();
-      localStorage.setItem('user_id', user_id);
-
-      fetch('https://nila-web.onrender.com/webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id, query }),
-        signal: controller.signal
-      })
-      .then(res => res.json())
-      .then(data => {
-        loadingElem.classList.add('hidden');
-        // Check if the response is code (starts with "```")
-        if(data.reply.trim().startsWith("```")) {
-          const codeText = data.reply.trim().replace(/```/g, '');
-          addMessage(codeText, 'bot', true, true);
-        } else {
-          addMessage(data.reply, 'bot', true);
-        }
-      })
-      .catch(error => {
-        loadingElem.classList.add('hidden');
-        // If aborted, simply exit
-        if (error.name === 'AbortError') return;
-        addMessage('Oops! Something went wrong. 😢', 'bot', true);
-      });
+  // Mobile-friendly enter key handling
+  queryInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      askNila();
     }
+  });
 
-    function generateUserId() {
-      return 'user-' + crypto.randomUUID();
-    }
+  // Welcome message
+  const emptyState = document.createElement('div');
+  emptyState.id = 'emptyState';
+  emptyState.className = 'text-center text-gray-500 py-4';
+  emptyState.innerText = 'Say hi to Nila 🌙';
+  chatHistoryElem.appendChild(emptyState);
 
-    function stopResponse() {
-      if(controller) {
-        controller.abort();
-        loadingElem.classList.add('hidden');
-      }
-    }
+  function askNila() {
+    const query = queryInput.value.trim();
+    if (!query) return;
 
-    /**
-     * addMessage: Adds a message to the chat.
-     * @param {string} text - The message text.
-     * @param {string} sender - 'user' or 'bot'.
-     * @param {boolean} isBot - Whether to use the typewriter effect.
-     * @param {boolean} isCode - Whether this message is a code snippet.
-     */
-    function addMessage(text, sender, isBot = false, isCode = false) {
-      const wrapper = document.createElement('div');
-      wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
+    document.getElementById('emptyState')?.remove();
+    addMessage(query, 'user');
+    queryInput.value = '';
 
-      if (isCode) {
-        // Create a styled code block with a dedicated copy button
-        const codeContainer = document.createElement('div');
-        codeContainer.className = 'relative p-4 rounded-lg max-w-full bg-gray-900 text-green-400 font-mono self-start overflow-x-auto';
-        const pre = document.createElement('pre');
-        pre.className = 'whitespace-pre';
-        const codeElem = document.createElement('code');
-        codeElem.textContent = text;
-        pre.appendChild(codeElem);
-        codeContainer.appendChild(pre);
-        
-        const codeCopyButton = document.createElement('button');
-        codeCopyButton.innerText = 'Copy Code';
-        codeCopyButton.className = 'absolute top-1 right-1 bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1 rounded';
-        codeCopyButton.onclick = () => navigator.clipboard.writeText(text);
-        codeContainer.appendChild(codeCopyButton);
-        
-        wrapper.appendChild(codeContainer);
+    controller = new AbortController();
+    loadingElem.classList.remove('hidden');
+
+    const user_id = localStorage.getItem('user_id') || generateUserId();
+    localStorage.setItem('user_id', user_id);
+
+    fetch('https://nila-web.onrender.com/webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id, query }),
+      signal: controller.signal
+    })
+    .then(res => res.json())
+    .then(data => {
+      loadingElem.classList.add('hidden');
+      if(data.reply.trim().startsWith("```")) {
+        const codeText = data.reply.trim().replace(/```/g, '');
+        addMessage(codeText, 'bot', true, true);
       } else {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
-        wrapper.appendChild(msgDiv);
-
-        if (sender === 'bot' && isBot) {
-          // Use typewriter effect for bot text
-          typeMessage(text, msgDiv, () => {
-            const copyButton = document.createElement('button');
-            copyButton.innerText = 'Copy';
-            copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
-            copyButton.onclick = () => navigator.clipboard.writeText(text);
-            wrapper.appendChild(copyButton);
-          });
-        } else {
-          msgDiv.textContent = text;
-        }
+        addMessage(data.reply, 'bot', true);
       }
-      
-      chatHistoryElem.appendChild(wrapper);
-      chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-    }
+    })
+    .catch(error => {
+      loadingElem.classList.add('hidden');
+      if (error.name === 'AbortError') return;
+      addMessage('Oops! Something went wrong. 😢', 'bot', true);
+    });
+  }
 
-    // Typewriter effect: displays text letter by letter with a faster speed.
-    function typeMessage(text, element, callback) {
-      let i = 0;
-      element.textContent = '';
-      function type() {
-        if (i < text.length) {
-          element.textContent += text.charAt(i);
-          i++;
-          setTimeout(type, 20); // Reduced delay for faster typing (20ms)
-        } else if (callback) {
-          callback();
-        }
-        chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+  function generateUserId() {
+    return 'user-' + crypto.randomUUID();
+  }
+
+  function stopResponse() {
+    if(controller) {
+      controller.abort();
+      loadingElem.classList.add('hidden');
+    }
+  }
+
+  function addMessage(text, sender, isBot = false, isCode = false) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'} opacity-0 transition-opacity duration-500`;
+
+    if (isCode) {
+      const codeContainer = document.createElement('div');
+      codeContainer.className = 'relative p-4 rounded-lg max-w-full bg-gray-900 text-green-400 font-mono self-start overflow-x-auto';
+      const pre = document.createElement('pre');
+      pre.className = 'whitespace-pre';
+      const codeElem = document.createElement('code');
+      codeElem.textContent = text;
+      pre.appendChild(codeElem);
+      codeContainer.appendChild(pre);
+
+      const codeCopyButton = document.createElement('button');
+      codeCopyButton.innerText = 'Copy Code';
+      codeCopyButton.className = 'absolute top-1 right-1 bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1 rounded';
+      codeCopyButton.onclick = () => navigator.clipboard.writeText(text);
+      codeContainer.appendChild(codeCopyButton);
+
+      wrapper.appendChild(codeContainer);
+    } else {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
+      wrapper.appendChild(msgDiv);
+
+      if (sender === 'bot' && isBot) {
+        typeMessage(text, msgDiv, () => {
+          const copyButton = document.createElement('button');
+          copyButton.innerText = 'Copy';
+          copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
+          copyButton.onclick = () => navigator.clipboard.writeText(text);
+          wrapper.appendChild(copyButton);
+        });
+      } else {
+        msgDiv.textContent = text;
       }
-      type();
     }
 
-    function clearChat() {
-      chatHistoryElem.innerHTML = '';
+    chatHistoryElem.appendChild(wrapper);
+    // Smooth scroll + fade-in animation
+    wrapper.offsetHeight; // trigger reflow
+    wrapper.classList.add('opacity-100');
+    chatHistoryElem.scrollTo({ top: chatHistoryElem.scrollHeight, behavior: 'smooth' });
+  }
+
+  function typeMessage(text, element, callback) {
+    let i = 0;
+    element.textContent = '';
+    function type() {
+      if (i < text.length) {
+        element.textContent += text.charAt(i);
+        i++;
+        setTimeout(type, 20);
+      } else if (callback) {
+        callback();
+      }
+      chatHistoryElem.scrollTo({ top: chatHistoryElem.scrollHeight, behavior: 'smooth' });
     }
-  </script>
+    type();
+  }
+
+  function clearChat() {
+    chatHistoryElem.innerHTML = '';
+    chatHistoryElem.appendChild(emptyState); // Show again when cleared
+  }
+</script>
 </body>
 </html>
