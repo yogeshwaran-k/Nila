@@ -1,0 +1,5 @@
+Flask==2.2.5
+flask-cors
+requests==2.31.0
+pytube
+instaloader
