@@ -47,6 +47,7 @@
         const chatHistoryElem = document.getElementById('chatHistory');
         const queryInput = document.getElementById('query');
         const loadingElem = document.getElementById('loading');
+        const userId = "user123";
 
         queryInput.addEventListener('keypress', e => {
             if (e.key === 'Enter') {
@@ -68,7 +69,7 @@
             fetch('https://nila-web.onrender.com/webhook', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query }),
+                body: JSON.stringify({ userId,query }),
                 signal: controller.signal
             })
             .then(res => res.json())
