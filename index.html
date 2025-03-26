@@ -1,164 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nila 🌜 - Chat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nila 🌜 - Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white flex flex-col items-center h-screen">
+<body class="bg-gray-900 text-white flex flex-col items-center min-h-screen">
 
-    <!-- Chat Container -->
-    <div class="w-full max-w-2xl flex flex-col h-full border border-gray-700 bg-gray-800 rounded-lg shadow-lg">
-        
-        <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-gray-700">
-            <div class="flex items-center">
-                <img src="nila.jpg" alt="Nila Avatar" class="w-10 h-10 rounded-full border border-blue-500 mr-3">
-                <h1 class="text-lg font-semibold">Nila 🌜</h1>
-            </div>
-            <button onclick="clearChat()" class="px-3 py-1 bg-red-500 hover:bg-red-600 rounded-lg text-sm">Clear Chat</button>
-        </div>
-
-        <!-- Chat History -->
-        <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-3">
-            <!-- Messages will appear here -->
-        </div>
-
-        <!-- Loading Indicator -->
-        <div id="loading" class="hidden text-center text-gray-400 py-2">Thinking... ⏳</div>
-
-        <!-- Input Field -->
-        <div class="p-4 border-t border-gray-700 flex">
-            <input id="query" type="text" class="flex-1 p-2 bg-gray-700 text-white rounded-lg focus:outline-none" placeholder="Ask me...">
-            <button onclick="askNila()" class="ml-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg">Send</button>
-            <button onclick="stopResponse()" class="ml-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg">Stop</button>
-        </div>
-
-        <!-- Footer -->
-        <div class="text-center text-blue-400 text-sm py-2 border-t border-gray-700">
-            Made with❤️ by <a class="text-red-400" href="https://yogeshwaran-k.orgfree.com" target="_blank">Yogeshwaran Kumaran</a>
-        </div>
-
+  <!-- Chat Container -->
+  <div class="w-full max-w-2xl flex flex-col h-full sm:h-auto md:h-[90vh] border border-gray-700 bg-gray-800 rounded-lg shadow-lg m-4">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b border-gray-700">
+      <div class="flex items-center">
+        <img src="nila.jpg" alt="Nila Avatar" class="w-10 h-10 rounded-full border border-blue-500 mr-3" />
+        <h1 class="text-lg font-semibold">Nila 🌜</h1>
+      </div>
+      <button onclick="clearChat()" class="px-3 py-1 bg-red-500 hover:bg-red-600 rounded-lg text-sm">Clear Chat</button>
     </div>
 
-    <script>
-        let controller = new AbortController();
-        const chatHistoryElem = document.getElementById('chatHistory');
-        const queryInput = document.getElementById('query');
-        const loadingElem = document.getElementById('loading');
+    <!-- Chat History -->
+    <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-3">
+      <!-- Messages will appear here -->
+    </div>
 
-        queryInput.addEventListener('keypress', e => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                askNila();
-            }
-        });
+    <!-- Loading Indicator -->
+    <div id="loading" class="hidden text-center text-gray-400 py-2">Thinking... ⏳</div>
 
-        function askNila() {
-    const query = queryInput.value.trim();
-    if (!query) return;
+    <!-- Input Field -->
+    <div class="p-4 border-t border-gray-700 flex flex-col sm:flex-row">
+      <input id="query" type="text" class="flex-1 p-2 bg-gray-700 text-white rounded-lg focus:outline-none mb-2 sm:mb-0" placeholder="Ask me..." />
+      <div class="flex flex-row space-x-2">
+        <button onclick="askNila()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg">Send</button>
+        <button onclick="stopResponse()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg">Stop</button>
+      </div>
+    </div>
 
-    // Add the user's message to chat
-    addMessage(query, 'user');
-    queryInput.value = '';
+    <!-- Footer -->
+    <div class="text-center text-blue-400 text-sm py-2 border-t border-gray-700">
+      Made with ❤️ by <a class="text-red-400" href="https://yogeshwaran-k.orgfree.com" target="_blank">Yogeshwaran Kumaran</a>
+    </div>
 
-    // Check if the query contains a YouTube or Instagram link
-    if (query.includes('youtube.com') || query.includes('youtu.be') || query.includes('instagram.com')) {
-        controller = new AbortController();
-        loadingElem.classList.remove('hidden');
+  </div>
 
-        // Replace the URL with your deployed backend's URL
-        fetch('https://nila-web.onrender.com/download', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: query }),
-            signal: controller.signal
-        })
-        .then(res => {
-            // If the response is not OK, handle error message
-            if (!res.ok) {
-                return res.json().then(data => { throw new Error(data.error) });
-            }
-            return res.blob();
-        })
-        .then(blob => {
-            loadingElem.classList.add('hidden');
-            // Create a download link for the received file
-            const fileURL = URL.createObjectURL(blob);
-            addMessage(`Download ready: <a href="${fileURL}" download target="_blank">Click here</a>`, 'bot', true);
-        })
-        .catch(err => {
-            loadingElem.classList.add('hidden');
-            addMessage(`Error: ${err.message}`, 'bot', true);
-        });
+  <script>
+    let controller = new AbortController();
+    const chatHistoryElem = document.getElementById('chatHistory');
+    const queryInput = document.getElementById('query');
+    const loadingElem = document.getElementById('loading');
 
-    } else {
-        // If it's not a media URL, process it as a regular query
-        controller = new AbortController();
-        loadingElem.classList.remove('hidden');
+    queryInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        askNila();
+      }
+    });
 
-        const user_id = localStorage.getItem('user_id') || generateUserId();
-        localStorage.setItem('user_id', user_id); 
+    function askNila() {
+      const query = queryInput.value.trim();
+      if (!query) return;
 
-        fetch('https://nila-web.onrender.com/webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id, query }),
-            signal: controller.signal
-        })
-        .then(res => res.json())
-        .then(data => {
-            loadingElem.classList.add('hidden');
-            addMessage(data.reply, 'bot', true);
-        })
-        .catch(() => {
-            loadingElem.classList.add('hidden');
-            addMessage('Oops! Something went wrong. 😢', 'bot', true);
-        });
+      // For demonstration, we add the user message as text.
+      addMessage(query, 'user');
+      queryInput.value = '';
+
+      controller = new AbortController();
+      loadingElem.classList.remove('hidden');
+
+      const user_id = localStorage.getItem('user_id') || generateUserId();
+      localStorage.setItem('user_id', user_id);
+
+      fetch('https://nila-web.onrender.com/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id, query }),
+        signal: controller.signal
+      })
+      .then(res => res.json())
+      .then(data => {
+        loadingElem.classList.add('hidden');
+        // Here, determine if the reply is code or plain text.
+        // For example, if the reply starts with "```", treat it as code.
+        if(data.reply.trim().startsWith("```")) {
+          // Remove the code fences (```), if any.
+          const codeText = data.reply.trim().replace(/```/g, '');
+          addMessage(codeText, 'bot', true, true);
+        } else {
+          addMessage(data.reply, 'bot', true);
+        }
+      })
+      .catch(() => {
+        loadingElem.classList.add('hidden');
+        addMessage('Oops! Something went wrong. 😢', 'bot', true);
+      });
     }
-}
 
+    function generateUserId() {
+      return 'user-' + crypto.randomUUID();
+    }
 
-        function generateUserId() {
-  return 'user-' + crypto.randomUUID();  // Secure, built-in UUID generator
-}
+    function stopResponse() {
+      controller.abort();
+      loadingElem.classList.add('hidden');
+    }
 
-        function stopResponse() {
-            controller.abort();
-            loadingElem.classList.add('hidden');
-        }
+    /**
+     * addMessage: Adds a message to the chat.
+     * @param {string} text - The message text.
+     * @param {string} sender - 'user' or 'bot'.
+     * @param {boolean} isBot - Whether to use the typewriter effect.
+     * @param {boolean} isCode - Whether this message is a code snippet.
+     */
+    function addMessage(text, sender, isBot = false, isCode = false) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
 
-        function addMessage(text, sender, isBot = false) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white self-end' : 'bg-gray-700 text-white self-start'}`;
-            msgDiv.innerText = text;
+      if (isCode) {
+        // Code message styling, like an IDE snippet
+        const codeContainer = document.createElement('div');
+        codeContainer.className = 'relative p-3 rounded-lg max-w-full bg-gray-900 text-green-400 font-mono self-start overflow-x-auto';
+        
+        const pre = document.createElement('pre');
+        pre.className = 'whitespace-pre-wrap';
+        pre.innerText = text;
+        codeContainer.appendChild(pre);
+        
+        // Separate copy button for code messages (copies only the code)
+        const codeCopyButton = document.createElement('button');
+        codeCopyButton.innerText = 'Copy Code';
+        codeCopyButton.className = 'absolute top-1 right-1 bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1 rounded';
+        codeCopyButton.onclick = () => navigator.clipboard.writeText(text);
+        codeContainer.appendChild(codeCopyButton);
+        
+        wrapper.appendChild(codeContainer);
+      } else {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white self-end' : 'bg-gray-700 text-white self-start'}`;
+        wrapper.appendChild(msgDiv);
 
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
-            
-            wrapper.appendChild(msgDiv);
-
-            if (isBot) {
-                const copyButton = document.createElement('button');
-                copyButton.innerText = '📋';
-                copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
-                copyButton.onclick = () => copyText(text);
-                wrapper.appendChild(copyButton);
-            }
-
-            chatHistoryElem.appendChild(wrapper);
+        if (sender === 'bot' && isBot) {
+          // Typewriter effect for bot text responses.
+          typeMessage(text, msgDiv, () => {
+            // After typing, add the copy button for text messages.
+            const copyButton = document.createElement('button');
+            copyButton.innerText = '📋';
+            copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
+            copyButton.onclick = () => copyText(text);
+            wrapper.appendChild(copyButton);
             chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+          });
+        } else {
+          msgDiv.innerText = text;
         }
+      }
+      
+      chatHistoryElem.appendChild(wrapper);
+      chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+    }
 
-        function copyText(text) {
-            navigator.clipboard.writeText(text);
+    // Typewriter effect: types one letter at a time.
+    function typeMessage(text, element, callback) {
+      let i = 0;
+      function type() {
+        if (i < text.length) {
+          element.innerText += text.charAt(i);
+          i++;
+          setTimeout(type, 50); // Adjust delay (in ms) as needed.
+        } else if (callback) {
+          callback();
         }
+        chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+      }
+      type();
+    }
 
-        function clearChat() {
-            chatHistoryElem.innerHTML = '';
-        }
-    </script>
+    function copyText(text) {
+      navigator.clipboard.writeText(text);
+    }
+
+    function clearChat() {
+      chatHistoryElem.innerHTML = '';
+    }
+  </script>
 
 </body>
 </html>
