@@ -6,30 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nila 🌜 - Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Highlight.js -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/monokai-sublime.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-    <style>
-        code {
-            font-family: monospace;
-        }
-        .copy-tooltip::after {
-            content: 'Copied!';
-            position: absolute;
-            top: -20px;
-            right: 0;
-            background: #4ade80;
-            color: black;
-            padding: 2px 5px;
-            font-size: 10px;
-            border-radius: 4px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .copy-tooltip.active::after {
-            opacity: 1;
-        }
-    </style>
 </head>
 
 <body class="bg-gray-900 text-white flex flex-col items-center min-h-screen">
@@ -47,7 +25,7 @@
         </div>
 
         <!-- Chat History -->
-        <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-3 transition-all"></div>
+        <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-3"></div>
 
         <!-- Loading Indicator -->
         <div id="loading" class="hidden text-center text-gray-400 py-2">Thinking... ⏳</div>
@@ -57,7 +35,7 @@
             <input id="query" type="text" class="flex-1 p-2 bg-gray-700 text-white rounded-lg focus:outline-none mb-2 sm:mb-0" placeholder="Ask me...">
             <div class="flex flex-row space-x-2">
                 <button onclick="askNila()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg">Send</button>
-                <button onclick="stopResponse()" id="stopBtn" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg">Stop</button>
+                <button onclick="stopResponse()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg">Stop</button>
             </div>
         </div>
 
@@ -65,15 +43,16 @@
         <div class="text-center text-blue-400 text-sm py-2 border-t border-gray-700">
             Made with ❤️ by <a class="text-red-400" href="https://yogeshwaran-k.orgfree.com" target="_blank">Yogeshwaran Kumaran</a>
         </div>
+
     </div>
 
-    <!-- Script -->
     <script>
         let controller = new AbortController();
+        let isTyping = false;
+
         const chatHistoryElem = document.getElementById('chatHistory');
         const queryInput = document.getElementById('query');
         const loadingElem = document.getElementById('loading');
-        const stopBtn = document.getElementById('stopBtn');
 
         queryInput.addEventListener('keypress', e => {
             if (e.key === 'Enter') {
@@ -84,11 +63,10 @@
 
         function askNila() {
             const query = queryInput.value.trim();
-            if (!query) return;
+            if (!query || isTyping) return;
 
             addMessage(query, 'user');
             queryInput.value = '';
-
             controller = new AbortController();
             loadingElem.classList.remove('hidden');
 
@@ -104,14 +82,11 @@
                 .then(res => res.json())
                 .then(data => {
                     loadingElem.classList.add('hidden');
-                    const reply = data.reply.trim();
-
-                    // Detect code block
-                    if (reply.match(/^```[a-zA-Z]*\n/)) {
-                        const codeText = reply.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/, '');
+                    if (data.reply.trim().startsWith("```")) {
+                        const codeText = data.reply.trim().replace(/^```|```$/g, '');
                         addMessage(codeText, 'bot', true, true);
                     } else {
-                        addMessage(reply, 'bot', true);
+                        addMessage(data.reply, 'bot', true);
                     }
                 })
                 .catch(error => {
@@ -121,15 +96,14 @@
                 });
         }
 
-        function generateUserId() {
-            return 'user-' + crypto.randomUUID();
+        function stopResponse() {
+            if (controller) controller.abort();
+            isTyping = false; // 💥 immediately stops typewriter
+            loadingElem.classList.add('hidden');
         }
 
-        function stopResponse() {
-            if (controller) {
-                controller.abort();
-                loadingElem.classList.add('hidden');
-            }
+        function generateUserId() {
+            return 'user-' + crypto.randomUUID();
         }
 
         function addMessage(text, sender, isBot = false, isCode = false) {
@@ -138,50 +112,70 @@
 
             if (isCode) {
                 const codeContainer = document.createElement('div');
-                codeContainer.className = 'relative p-4 rounded-lg max-w-full bg-gray-900 text-white font-mono self-start overflow-x-auto';
+                codeContainer.className = 'relative p-4 rounded-lg max-w-full bg-gray-900 text-green-400 font-mono self-start overflow-x-auto';
                 const pre = document.createElement('pre');
                 const codeElem = document.createElement('code');
-                codeElem.className = 'hljs';
+                codeElem.className = "language-javascript";
                 codeElem.textContent = text;
                 pre.appendChild(codeElem);
                 codeContainer.appendChild(pre);
 
                 const codeCopyButton = document.createElement('button');
                 codeCopyButton.innerText = 'Copy Code';
-                codeCopyButton.className = 'absolute top-1 right-1 bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1 rounded copy-tooltip';
-                codeCopyButton.onclick = () => {
-                    navigator.clipboard.writeText(text);
-                    codeCopyButton.classList.add('active');
-                    setTimeout(() => codeCopyButton.classList.remove('active'), 1000);
-                };
-
+                codeCopyButton.className = 'absolute top-1 right-1 bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1 rounded';
+                codeCopyButton.onclick = () => navigator.clipboard.writeText(text);
                 codeContainer.appendChild(codeCopyButton);
-                wrapper.appendChild(codeContainer);
 
-                setTimeout(() => hljs.highlightElement(codeElem), 0);
+                wrapper.appendChild(codeContainer);
+                chatHistoryElem.appendChild(wrapper);
+                hljs.highlightElement(codeElem);
             } else {
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `p-3 rounded-lg max-w-xs ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
-                msgDiv.innerHTML = text.replace(/`([^`]+)`/g, '<code class="bg-gray-600 px-1 rounded text-sm">$1</code>');
                 wrapper.appendChild(msgDiv);
+
+                if (sender === 'bot' && isBot) {
+                    isTyping = true;
+                    typeMessage(text, msgDiv, () => {
+                        isTyping = false;
+                        const copyButton = document.createElement('button');
+                        copyButton.innerText = 'Copy';
+                        copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
+                        copyButton.onclick = () => navigator.clipboard.writeText(text);
+                        wrapper.appendChild(copyButton);
+                    });
+                } else {
+                    msgDiv.textContent = text;
+                }
+                chatHistoryElem.appendChild(wrapper);
             }
 
-            chatHistoryElem.appendChild(wrapper);
-            smoothScrollToBottom();
+            chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+        }
+
+        function typeMessage(text, element, callback) {
+            let i = 0;
+            element.textContent = '';
+            function type() {
+                if (!isTyping) return;
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, 20);
+                } else {
+                    isTyping = false;
+                    if (callback) callback();
+                }
+                chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+            }
+            type();
         }
 
         function clearChat() {
             chatHistoryElem.innerHTML = '';
         }
-
-        // Smooth auto scroll
-        function smoothScrollToBottom() {
-            chatHistoryElem.scrollTo({
-                top: chatHistoryElem.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
     </script>
+
 </body>
 
 </html>
