@@ -47,7 +47,6 @@
         const chatHistoryElem = document.getElementById('chatHistory');
         const queryInput = document.getElementById('query');
         const loadingElem = document.getElementById('loading');
-        const userId = "user123";
 
         queryInput.addEventListener('keypress', e => {
             if (e.key === 'Enter') {
@@ -64,12 +63,15 @@
             queryInput.value = '';
             
             controller = new AbortController();
-            loadingElem.classList.remove('hidden'); // Show loading
+            loadingElem.classList.remove('hidden');
+            
+             const user_id = localStorage.getItem('user_id') || generateUserId();
+            localStorage.setItem('user_id', user_id); 
 
             fetch('https://nila-web.onrender.com/webhook', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId,query }),
+                body: JSON.stringify({ user_id,query }),
                 signal: controller.signal
             })
             .then(res => res.json())
@@ -82,6 +84,10 @@
                 addMessage('Oops! Something went wrong. 😢', 'bot', true);
             });
         }
+
+        function generateUserId() {
+  return 'user-' + crypto.randomUUID();  // Secure, built-in UUID generator
+}
 
         function stopResponse() {
             controller.abort();
