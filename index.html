@@ -6,42 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nila 🌜 - Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Highlight.js CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
-
-    <style>
-        pre code {
-            font-size: 0.9rem;
-            border-radius: 0.5rem;
-        }
-
-        pre {
-            background: #0f172a;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            position: relative;
-            overflow-x: auto;
-        }
-
-        pre button {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            font-size: 0.75rem;
-            background: #3b82f6;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            color: white;
-            display: none;
-        }
-
-        pre:hover button {
-            display: block;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 </head>
 
 <body class="bg-gray-900 text-white flex flex-col items-center min-h-screen">
@@ -81,6 +47,8 @@
 
     <script>
         let controller = new AbortController();
+        let stopTyping = false;
+
         const chatHistoryElem = document.getElementById('chatHistory');
         const queryInput = document.getElementById('query');
         const loadingElem = document.getElementById('loading');
@@ -100,6 +68,7 @@
             queryInput.value = '';
 
             controller = new AbortController();
+            stopTyping = false;
             loadingElem.classList.remove('hidden');
 
             const user_id = localStorage.getItem('user_id') || generateUserId();
@@ -111,16 +80,22 @@
                 body: JSON.stringify({ user_id, query }),
                 signal: controller.signal
             })
-            .then(res => res.json())
-            .then(data => {
-                loadingElem.classList.add('hidden');
-                addMessage(data.reply, 'bot', true);
-            })
-            .catch(error => {
-                loadingElem.classList.add('hidden');
-                if (error.name === 'AbortError') return;
-                addMessage('Oops! Something went wrong. 😢', 'bot', true);
-            });
+                .then(res => res.json())
+                .then(data => {
+                    loadingElem.classList.add('hidden');
+
+                    if (data.reply.trim().startsWith("```")) {
+                        const codeText = data.reply.trim().replace(/```/g, '');
+                        addMessage(codeText, 'bot', false, true);
+                    } else {
+                        addMessage(data.reply, 'bot', true, false);
+                    }
+                })
+                .catch(error => {
+                    loadingElem.classList.add('hidden');
+                    if (error.name === 'AbortError') return;
+                    addMessage('Oops! Something went wrong. 😢', 'bot', true);
+                });
         }
 
         function generateUserId() {
@@ -130,58 +105,77 @@
         function stopResponse() {
             if (controller) {
                 controller.abort();
+                stopTyping = true;
                 loadingElem.classList.add('hidden');
             }
         }
 
-        function clearChat() {
-            chatHistoryElem.innerHTML = '';
-        }
-
-        // ✅ Modernized addMessage (ChatGPT Style)
-        function addMessage(text, sender, isBot = false) {
+        function addMessage(text, sender, isTyping = false, isCode = false) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start items-center'}`;
 
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `p-3 rounded-lg space-y-2 max-w-full whitespace-pre-wrap break-words ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
-            wrapper.appendChild(msgDiv);
+            const content = document.createElement('div');
+            content.className = `relative p-3 rounded-lg max-w-full break-words ${sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'}`;
 
-            if (sender === 'bot' && isBot) {
-                const parts = text.split(/(```[\s\S]*?```)/g);
-                parts.forEach(part => {
-                    if (part.startsWith('```')) {
-                        const codeContent = part.replace(/```/g, '');
-                        const langMatch = codeContent.match(/^(\w+)\n/);
-                        const lang = langMatch ? langMatch[1] : '';
-                        const codeText = lang ? codeContent.slice(lang.length + 1) : codeContent;
-
-                        const pre = document.createElement('pre');
-                        const code = document.createElement('code');
-                        code.className = lang ? `language-${lang}` : '';
-                        code.textContent = codeText.trim();
-                        pre.appendChild(code);
-
-                        // Copy button
-                        const copyBtn = document.createElement('button');
-                        copyBtn.innerText = 'Copy';
-                        copyBtn.onclick = () => navigator.clipboard.writeText(codeText.trim());
-                        pre.appendChild(copyBtn);
-
-                        msgDiv.appendChild(pre);
-                        hljs.highlightElement(code);
-                    } else if (part.trim() !== '') {
-                        const p = document.createElement('p');
-                        p.textContent = part.trim();
-                        msgDiv.appendChild(p);
-                    }
-                });
+            if (isCode) {
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+                code.className = 'language-python';
+                code.textContent = text.trim();
+                pre.appendChild(code);
+                content.appendChild(pre);
+                hljs.highlightElement(code);
             } else {
-                msgDiv.textContent = text;
+                if (sender === 'bot' && isTyping) {
+                    typeMessage(text, content);
+                } else {
+                    content.textContent = text;
+                }
             }
 
+            // Copy button
+            const copyButton = document.createElement('button');
+            copyButton.innerText = 'Copy';
+            copyButton.className = 'absolute top-1 right-1 bg-blue-500 hover:bg-blue-600 text-xs px-2 py-1 rounded';
+            copyButton.onclick = () => {
+                navigator.clipboard.writeText(text);
+                copyButton.innerText = 'Copied';
+                setTimeout(() => copyButton.innerText = 'Copy', 2000);
+            };
+            content.appendChild(copyButton);
+
+            wrapper.appendChild(content);
             chatHistoryElem.appendChild(wrapper);
             chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+        }
+
+        function typeMessage(text, element) {
+            let i = 0;
+            element.textContent = '';
+            (function type() {
+                if (stopTyping) return;
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, 20);
+                } else {
+                    // Add copy button after typing is done
+                    const copyButton = document.createElement('button');
+                    copyButton.innerText = 'Copy';
+                    copyButton.className = 'ml-2 text-gray-400 hover:text-gray-200';
+                    copyButton.onclick = () => {
+                        navigator.clipboard.writeText(text);
+                        copyButton.innerText = 'Copied';
+                        setTimeout(() => copyButton.innerText = 'Copy', 2000);
+                    };
+                    element.appendChild(copyButton);
+                }
+                chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+            })();
+        }
+
+        function clearChat() {
+            chatHistoryElem.innerHTML = '';
         }
     </script>
 </body>
