@@ -137,7 +137,7 @@ def chatbot():
             preference_context = "\n".join([f"The user likes {key}: {val}." for key, val in user_preferences[user_id].items()])
             user_conversations[user_id].append({"role": "system", "content": preference_context})
 
-        payload = {"model": "openai/gpt-3.5-turbo", "messages": user_conversations[user_id]}
+        payload = {"model": "openai/gpt-3.5-turbo", "messages": user_conversations[user_id], "user": user_id}
 
         try:
             response = requests.post("https://openrouter.ai/api/v1/chat/completions",
